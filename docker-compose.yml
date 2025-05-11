@@ -1,0 +1,50 @@
+name: exchange-office-dockerized
+
+services:
+  mongo:
+    image: mongo
+    ports:
+      - 27017:27017
+    volumes:
+      - ./database/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js
+      - mongo_data:/data/db
+    networks:
+      - exchange-office-network
+  api:
+    build:
+      context: ./exchange-office-api
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: ./exchange-office-api/.env
+    volumes:
+      - ./exchange-office-api:/app
+      - /app/node_modules
+    networks:
+      - exchange-office-network
+    ports:
+      - 3000:3000
+    depends_on:
+      - mongo
+  frontend:
+    build:
+      context: ./exchange-office-app
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: ./exchange-office-app/.env
+    volumes:
+      - ./exchange-office-app:/app
+      - /app/node_modules
+    networks:
+      - exchange-office-network
+    ports:
+      - 5173:5173
+    command: npm run dev -- --host
+    depends_on:
+      - api
+
+volumes:
+  mongo_data:
+
+networks:
+  exchange-office-network:
+    driver: bridge
